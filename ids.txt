@@ -1,0 +1,16 @@
+https://nmap.org/book/man-bypass-firewalls-ids.html
+https://tryhackme.com/room/idsevasion
+
+=== Project Status: 2026-04-19 ===
+- Requirements: Installed.
+- NIDS/HIDS: Core logic implemented; HIDS active in main.py.
+- ML Engine: Skeleton ready; needs model assets in models/.
+- Dataset: User is downloading "Machine Learning CSVs" (CIC-IDS2017).
+
+=== Next Steps ===
+1. Extract the ZIP into the data/ directory.
+2. Run 'python3 src/ml/train.py' to generate model assets.
+   - Note: Training on the full 2.8M rows may require high RAM. 
+   - Strategy: Consider using a 10-20% subset for the first iteration.
+3. Verify models/ now contains ids_model.joblib, scaler.joblib, etc.
+4. Run 'sudo python3 main.py' to start the full Hybrid IDS.
