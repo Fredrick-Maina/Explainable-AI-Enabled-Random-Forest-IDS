@@ -78,7 +78,7 @@ class FeatureExtractor:
                 if f & 0x10: flags['ack'] += 1
                 if f & 0x20: flags['urg'] += 1
 
-        # Construct feature vector
+        # Construct base feature vector (29 features)
         feature_vector = [
             flow_duration, total_fwd_packets, total_bwd_packets, total_fwd_bytes, total_bwd_bytes,
             max_len, min_len, mean_len, std_len,
@@ -87,7 +87,25 @@ class FeatureExtractor:
             is_dns, is_http
         ]
 
-        # Pad to 78 features
-        feature_vector += [0] * (78 - len(feature_vector))
+        # 6. Extended Derived Features (Crucial for Random Forest Accuracy)
+        flow_bytes_per_sec = (total_fwd_bytes + total_bwd_bytes) / (flow_duration / 1e6) if flow_duration > 0 else 0
+        flow_packets_per_sec = (total_fwd_packets + total_bwd_packets) / (flow_duration / 1e6) if flow_duration > 0 else 0
+        down_up_ratio = total_bwd_packets / total_fwd_packets if total_fwd_packets > 0 else 0
+        
+        extended_features = [
+            flow_bytes_per_sec, flow_packets_per_sec, down_up_ratio,
+            np.var(all_lengths) if all_lengths else 0,
+            np.var(fwd_lengths) if fwd_lengths else 0,
+            np.var(bwd_lengths) if bwd_lengths else 0,
+            sum(fwd_lengths) / max(1, len(fwd_lengths)), # Fwd Avg Bytes/Bulk
+            sum(bwd_lengths) / max(1, len(bwd_lengths)), # Bwd Avg Bytes/Bulk
+        ]
+        feature_vector.extend(extended_features)
+
+        # Pad remaining advanced features (e.g. Active/Idle times, Subflow stats) to reach exactly 78.
+        # Calculating all 78 requires extensive memory state tracking not suitable for this lightweight sniffer.
+        padding_needed = 78 - len(feature_vector)
+        if padding_needed > 0:
+            feature_vector += [0] * padding_needed
 
         return np.array(feature_vector).reshape(1, -1)

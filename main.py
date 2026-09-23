@@ -88,13 +88,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-rgs.log, pcap_file=args.pcap)
-    
-    # Handle signals for graceful shutdown
-    signal.signal(signal.SIGINT, ids.stop)
-    signal.signal(signal.SIGTERM, ids.stop)
-    
-    ids.start()
-
-if __name__ == "__main__":
-    main()

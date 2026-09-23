@@ -44,12 +44,17 @@ class FlowManager:
         src_port = 0
         dst_port = 0
         
+        flags = 0
         if packet.haslayer(inet.TCP):
             src_port = packet[inet.TCP].sport
             dst_port = packet[inet.TCP].dport
+            flags = packet[inet.TCP].flags
         elif packet.haslayer(inet.UDP):
             src_port = packet[inet.UDP].sport
             dst_port = packet[inet.UDP].dport
+        elif packet.haslayer(inet.ICMP):
+            src_port = packet[inet.ICMP].type
+            dst_port = packet[inet.ICMP].code
 
         # Flow ID is bidirectional (canonical tuple)
         flow_id = tuple(sorted([(src_ip, src_port), (dst_ip, dst_port)])) + (protocol,)
@@ -60,8 +65,8 @@ class FlowManager:
         
         self.active_flows[flow_id].add_packet(packet)
         
-        # Check if flow should be sent to ML engine (e.g., reached packet threshold)
-        if len(self.active_flows[flow_id].packets) >= 100: # Increased threshold for efficiency
+        # Analyze flow if it reaches a large memory threshold or if TCP connection closes
+        if len(self.active_flows[flow_id].packets) >= 10000 or (flags & 0x01) or (flags & 0x04):
             self.process_flow(flow_id)
 
     def process_flow(self, flow_id):

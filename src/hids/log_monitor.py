@@ -2,6 +2,7 @@ import re
 import time
 import os
 import threading
+import platform
 from src.core.event_bus import bus
 from src.core.logger import system_logger, alert_logger
 
@@ -9,14 +10,31 @@ class LogMonitor:
     """
     Tails a log file and searches for suspicious patterns (Regex).
     """
-    def __init__(self, log_file="/var/log/auth.log"):
-        self.log_file = log_file
-        self.patterns = {
-            r"Failed password for": "Brute Force Attempt",
-            r"authentication failure": "Auth Failure",
-            r"Invalid user": "Unknown User Access",
-            r"Accepted password for": "Successful Login" # Can be useful for baseline
-        }
+    def __init__(self, log_file=None):
+        self.os_type = platform.system()
+        
+        # Set default log file if none provided
+        if not log_file:
+            if self.os_type == "Windows":
+                self.log_file = "C:\\Windows\\System32\\winevt\\Logs\\Security.evtx"
+            else:
+                self.log_file = "/var/log/auth.log"
+        else:
+            self.log_file = log_file
+
+        # OS-specific patterns
+        if self.os_type == "Windows":
+            self.patterns = {
+                r"EventID[=:\s]+4625": "Brute Force Attempt / Failed Login",
+                r"EventID[=:\s]+4624": "Successful Login"
+            }
+        else:
+            self.patterns = {
+                r"Failed password for": "Brute Force Attempt",
+                r"authentication failure": "Auth Failure",
+                r"Invalid user": "Unknown User Access",
+                r"Accepted password for": "Successful Login"
+            }
         self.is_running = False
 
     def tail_f(self):

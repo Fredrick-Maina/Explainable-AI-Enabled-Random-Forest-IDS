@@ -59,8 +59,16 @@ class IDSTrainer:
         df['Label'] = y
         return df
 
-    def train(self, df):
+    def train(self, df, sample_frac=0.1):
         print("[*] Preprocessing data...")
+        
+        # Apply stratified sampling to prevent Out-Of-Memory (OOM) errors during training
+        # This reduces the dataset size while maintaining the ratio of benign vs attack traffic
+        if sample_frac < 1.0 and len(df) > 10000:
+            print(f"[*] Sampling {sample_frac*100}% of the dataset to save memory...")
+            df = df.groupby('Label', group_keys=False).apply(lambda x: x.sample(frac=sample_frac, random_state=42))
+            print(f"[*] New dataset size: {len(df)} rows.")
+
         X = df.drop(columns=['Label'])
         y = df['Label']
 
